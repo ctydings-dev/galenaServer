@@ -8,7 +8,7 @@ const requestHandler = (request, response) => {
     if (request.method === 'GET' && request.url === '/') {
         dumpMessage(funcName, "Request Method: GET - request URL: " + request.url);
         response.writeHead(200, {"Content-Type": "text/html"});
-        response.end('Hello Node.js Server - at:  ' + getTime() + '!' + test.getDB());
+        response.end('Hello Node.js Server - at:  ' + getTime() + '!' + test.print());
     }
 };
 

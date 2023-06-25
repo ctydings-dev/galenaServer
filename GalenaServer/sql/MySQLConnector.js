@@ -30,7 +30,7 @@ class MySQLConnector extends base {
     }
 
     getConnection = function () {
-        return this.connection();
+        return this.connection;
 
     }
 
@@ -53,10 +53,42 @@ class MySQLConnector extends base {
         this.connection.connect(function (err) {
             if (err)
                 throw err;
-            out.log("Connected!");
+            out.log("Connected to MySQL Server!");
+        });
+        var db = this.getDB();
+        var sql = 'USE  ' + db;
+
+        this.executeStatement(sql);
+        out.log('Using database ' + db);
+
+
+
+    }
+
+    executeStatement = function (stmt, echo) {
+
+        if (echo !== true) {
+            echo = false;
+        }
+        var out = this.getOutputter();
+        this.getConnection().query(stmt, function (err, result) {
+            if (err)
+                throw err;
+
+            if (echo === true) {
+
+                out.log('\'' + stmt + '\' sucessfull!');
+
+            }
+
         });
 
 
+
+    }
+
+    print = function () {
+        return this.getOutputter().toString();
     }
 
 }
