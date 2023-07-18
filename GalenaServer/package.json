@@ -11,6 +11,10 @@
     "author": "ctydi",
     "contributors": [],
     "dependencies": {
+        "cors": "2.8.5",
+        "crypto-js": "4.1.1",
+        "express": "4.18.2",
+        "hybrid-crypto-js": "0.2.4",
         "mysql": "2.18.1"
     }
 }
