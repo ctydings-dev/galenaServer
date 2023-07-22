@@ -12,42 +12,27 @@ class EncryptionModule {
         this.generateRSAKeys();
 
         this.aesKeyBank = {};
-
-    }
-
-    addAESKey = function (client, key) {
-
-        console.log('Adding new session: ' + client);
-
-        var toAdd = {
-
-            client: client,
-            key: key
-
-
-        };
-        this.getAESKeyBank()[client] = toAdd;
-
-    }
-
-    getAESKeyBank = function () {
-        return this.aesKeyBank;
-    }
-
-    decryptAES = function (message, key) {
-
+        this.rsaKeyBank = {};
 
 
     }
 
-    AESEncrypt = function (message, key) {
+    getRSAKeyBank = function () {
+        return this.rsaKeyBank;
+    }
 
-        var crypt = new Crypt({
-            aesStandard: 'AES-CBC'
-        });
+    storeClientRSAKey = function (session, key)
+    {
+        this.getRSAKeyBank()[session] = key;
 
-        return crypt.encrypt(key, message);
+    }
 
+    getClientRSAKey = function (session) {
+
+        if (this.getRSAKeyBank()[session] === null) {
+            throw session + ' has not been registered!';
+        }
+        return this.getRSAKeyBank()[session];
 
     }
 
@@ -104,14 +89,22 @@ class EncryptionModule {
 
     }
 
-    RSAEncrypt = function (data) {
+    RSASessionEncrypt = function (data, session) {
+
+        var key = this.getClientRSAKey(session);
+        return this.RSAEncrypt(data, key);
+
+
+    }
+
+    RSAEncrypt = function (data, key) {
 
         var crypt = new Crypt({
 
             rsaStandard: 'RSA-OAEP'
         });
 
-        var encrypted = crypt.encrypt(this.getPublicKey(), data);
+        var encrypted = crypt.encrypt(key, data);
 
         return encrypted;
         //   return JSON.parse(encrypted).cipher;
