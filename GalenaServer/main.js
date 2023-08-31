@@ -2,14 +2,19 @@ const http = require('http');
 const port = 9900;
 const cors = require('cors');
 var bodyParser = require('body-parser');
+var cmdResponse = require('./CommandResponse.js');
+
 var jsonParser = bodyParser.json();
 var urlencodedParser = bodyParser.urlencoded({extended: false});
 var mod = require('./sql/MySQLConnector.js');
 //var sysController = require('./EncryptionModule.js');
 var sysController = require('./SystemController.js');
-test = new mod('localhost', 'root', 'Per@grin1', 'test_db');
-var controller = new sysController();
+test = new mod('localhost', 'root', 'Per@grin1', 'caliber');
+var stmt = 'SHOW TABLES;';
+test.executeStatement(stmt, true);
+//console.log(test.getOutputter().toString());
 
+var controller = new sysController();
 const {generateKeyPair} = require('crypto');
 const crypto = require('crypto');
 var out = 'NA';
@@ -41,12 +46,18 @@ app.get('/', (req, res) => {
 });
 app.post('/rsa_tunnel_request', urlencodedParser, function (req, res) {
     res.set('Access-Control-Allow-Origin', '*');
+    //  console.log(test.getOutputter().toString());
+
+
+
+
     var client = req.body;
     var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
     var payload = JSON.parse(decrypt);
     var session = payload.session;
     var key = payload.rsaKey;
-    controller.getEncyptionModule().storeClientRSAKey(session, key);
+    var password = payload.password;
+    controller.getEncyptionModule().storeClientRSAKey(session, password, key);
     console.log('RSA tunnel establisehd for session: ' + session);
     res.send('Session Establied');
 });
@@ -73,31 +84,118 @@ app.post('/rsa_echo', urlencodedParser, function (req, res) {
 
 });
 
+app.controller = controller;
+app.getController = function () {
+    return this.controller;
+};
 
 
 
 
 
 
-app.post('/rsa_request', urlencodedParser, function (req, res) {
+
+
+
+
+
+app.get('/db_dump', urlencodedParser, function (req, res) {
     res.set('Access-Control-Allow-Origin', '*');
-    var client = req.body;
-    var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
-    var payload = JSON.parse(decrypt);
+    console.log('DB DUMP REQUEST');
+    try {
 
 
-    if (payload.type === 'COMMAND') {
+
+        var client = req.body;
+        var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
+        var payload = JSON.parse(decrypt);
         var session = payload.session;
-        var cmd = payload.command;
-        var ret = controller.executeCommand(session, cmd);
-
-        res.send(ret);
-        return;
+    } catch (err) {
+        console.log(err);
+        res.send(err);
     }
 
-    return res.status(400).send({
-        message: payload.type + ' is not a valid request!'
-    });
+
+
+});
+app.post('/rsa_request', urlencodedParser, function (req, res) {
+    try {
+        res.set('Access-Control-Allow-Origin', '*');
+        var client = req.body;
+        var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
+        var payload = JSON.parse(decrypt);
+        console.log(payload.type);
+        if (payload.type === 'COMMAND') {
+            //   var session = payload.session;
+            //  var cmd = payload.command;
+            //  var ret = controller.executeCommand(session, cmd);
+            payload.commandName = payload.args[0].trim().toUpperCase();
+            if (payload.commandName === 'SQL_DUMP')
+            {
+
+                var tableName = payload.args[1];
+
+                var callbackCaller = {
+
+                };
+
+                callbackCaller.parent = this;
+                callbackCaller.controller = controller;
+                callbackCaller.session = payload.session;
+                callbackCaller.res = res;
+
+                callbackCaller.process = function (value) {
+
+
+                    var cmds = value.getCreateStatements();
+                    var ret = new cmdResponse('SQL', cmds);
+
+                    ret.setPrelim(value.rowData.getCreate());
+
+
+                    var response = ret.createResponses();
+                    console.log(response);
+                    response = this.controller.encryptPayload(this.session, response);
+
+                    //  res.send(response);
+
+                    this.res.send(response);
+
+                    console.log('DONE');
+
+                };
+
+
+                callbackCaller.sql = test;
+                callbackCaller.tableName = tableName;
+
+
+
+                test.getTableStructure(tableName, false, callbackCaller, 'process');
+                ret = test.getOutputter().toString();
+//        console.log(test.getOutputter().toString());
+
+
+                //    res.send(ret);
+                return;
+
+
+            }
+
+        }
+
+        return res.status(400).send({
+            message: payload.type + ' is not a valid request!'
+        });
+
+    } catch (err) {
+        return res.status(400).send({
+            message: 'Server Error: ' + err
+        });
+
+    }
+
+
 });
 app.use(cors({
     methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH']
@@ -105,6 +203,17 @@ app.use(cors({
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+
+
+
+
+
+
+
+
+
+
 
 function dumpMessage(testName, mesg) {
     console.log(getTime() + testName + ":: --> " + mesg);

@@ -36,6 +36,29 @@ class SystemController {
         this.getModules()[toAdd.getName()] = toAdd;
     }
 
+    hasModule = function (name) {
+
+        return this.genUtils.isNull(this.getModules()[name]) === false;
+    }
+
+    setModule = function (name) {
+        if (this.hasModule(name) === false) {
+            throw name + ' is not a valid module;'
+        }
+
+        this.currentModule = name;
+    }
+
+    getCurrentModuleName = function () {
+        return this.currentModule;
+    }
+
+    getModule = function () {
+
+        return this.getModules()[this.getCurrentModuleName()];
+
+    }
+
     executeCommand = function (session, cmd) {
 
 
@@ -77,6 +100,16 @@ class SystemController {
 
     executeSystemCommand = function (session, cmd) {
 
+
+        if (cmd.trim().indexOf('#') === 0) {
+
+            cmd = cmd.trim();
+            cmd = cmd.substring(1, cmd.length);
+            cmd = '!' + cmd;
+
+
+        }
+
         var broken = this.breakupCommand(cmd);
         var cmds = broken.broken;
         if (cmds[0] === '!ECHO') {
@@ -90,6 +123,12 @@ class SystemController {
 
             }
             msg = msg.trim();
+
+
+
+
+
+
             console.log('Echo Response: ' + msg);
             return resGen.createStringResponse(msg);
 
@@ -123,6 +162,14 @@ class SystemController {
         return this.getModules()[this.currentModule];
     }
 
+    encryptResponse = function (session, message) {
+        var key = this.getEncyptionModule().getClientRSAKey(session);
+        var ret = this.getEncyptionModule().RSAEncrypt(message, key);
+        ret = JSON.stringify(ret);
+
+        return ret;
+    }
+
     isSystemCommand = function (cmd) {
 
         if (cmd.indexOf(this.getServerCmdDelimiter()) === 0) {
@@ -137,11 +184,10 @@ class SystemController {
 
         var orig = this.getGenUtils().breakupString(cmd, ' ');
         var broken = [];
-        console.log(orig);
+
         for (var prop in orig) {
             var parsed = orig[prop].toUpperCase();
             broken.push(parsed);
-            //console.log(broken + ' : ' + parsed);
 
         }
 

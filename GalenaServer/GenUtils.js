@@ -54,6 +54,28 @@ class GenUtils {
 
     }
 
+    replaceString = function (input, target, rep) {
+        var ret = '';
+        var index = input.indexOf(target);
+
+        while (index >= 0) {
+
+            var sub = input.substring(0, index);
+            ret = ret + sub + rep;
+            input = input.substring(index + target.length);
+
+            index = input.indexOf(target);
+
+        }
+        if (input.length > 0) {
+            ret = ret + input;
+        }
+
+
+
+        return ret;
+    }
+
 }
 
 

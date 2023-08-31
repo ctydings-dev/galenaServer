@@ -21,7 +21,7 @@ class EncryptionModule {
         return this.rsaKeyBank;
     }
 
-    storeClientRSAKey = function (session, key)
+    storeClientRSAKey = function (session, password, key)
     {
         this.getRSAKeyBank()[session] = key;
 
@@ -44,7 +44,7 @@ class EncryptionModule {
 
         rsa.generateKeyPair(function (keyPair) {
             // Callback function receives new 1024 bit key pair as a first argument
-            console.log('SERVER RSA Public Key: ' + keyPair.publicKey);
+            //  console.log('SERVER RSA Public Key: ' + keyPair.publicKey);
 
             caller.publicKey = keyPair.publicKey;
             caller.privateKey = keyPair.privateKey;
