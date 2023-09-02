@@ -4,6 +4,35 @@ const cors = require('cors');
 var bodyParser = require('body-parser');
 var cmdResponse = require('./CommandResponse.js');
 
+var sqlModuleClass = require('./sql/SQLModule.js');
+
+
+
+
+
+
+var message = 'test';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var jsonParser = bodyParser.json();
 var urlencodedParser = bodyParser.urlencoded({extended: false});
 var mod = require('./sql/MySQLConnector.js');
@@ -14,7 +43,8 @@ var stmt = 'SHOW TABLES;';
 test.executeStatement(stmt, true);
 //console.log(test.getOutputter().toString());
 
-var controller = new sysController();
+var controller = new sysController('localhost', 'root', 'Per@grin1', 'galena');
+controller.addModule(new sqlModuleClass('localhost'));
 const {generateKeyPair} = require('crypto');
 const crypto = require('crypto');
 var out = 'NA';
@@ -46,10 +76,6 @@ app.get('/', (req, res) => {
 });
 app.post('/rsa_tunnel_request', urlencodedParser, function (req, res) {
     res.set('Access-Control-Allow-Origin', '*');
-    //  console.log(test.getOutputter().toString());
-
-
-
 
     var client = req.body;
     var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
@@ -57,7 +83,9 @@ app.post('/rsa_tunnel_request', urlencodedParser, function (req, res) {
     var session = payload.session;
     var key = payload.rsaKey;
     var password = payload.password;
-    controller.getEncyptionModule().storeClientRSAKey(session, password, key);
+    var user = payload.user;
+
+    controller.getEncyptionModule().storeClientRSAKey(session, user, password, key);
     console.log('RSA tunnel establisehd for session: ' + session);
     res.send('Session Establied');
 });
@@ -125,62 +153,16 @@ app.post('/rsa_request', urlencodedParser, function (req, res) {
         var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
         var payload = JSON.parse(decrypt);
         console.log(payload.type);
+        console.log(payload.args[0]);
+
+
+
         if (payload.type === 'COMMAND') {
-            //   var session = payload.session;
-            //  var cmd = payload.command;
-            //  var ret = controller.executeCommand(session, cmd);
-            payload.commandName = payload.args[0].trim().toUpperCase();
-            if (payload.commandName === 'SQL_DUMP')
-            {
 
-                var tableName = payload.args[1];
+            controller.executeCommand(payload, req, res);
 
-                var callbackCaller = {
+            return;
 
-                };
-
-                callbackCaller.parent = this;
-                callbackCaller.controller = controller;
-                callbackCaller.session = payload.session;
-                callbackCaller.res = res;
-
-                callbackCaller.process = function (value) {
-
-
-                    var cmds = value.getCreateStatements();
-                    var ret = new cmdResponse('SQL', cmds);
-
-                    ret.setPrelim(value.rowData.getCreate());
-
-
-                    var response = ret.createResponses();
-                    console.log(response);
-                    response = this.controller.encryptPayload(this.session, response);
-
-                    //  res.send(response);
-
-                    this.res.send(response);
-
-                    console.log('DONE');
-
-                };
-
-
-                callbackCaller.sql = test;
-                callbackCaller.tableName = tableName;
-
-
-
-                test.getTableStructure(tableName, false, callbackCaller, 'process');
-                ret = test.getOutputter().toString();
-//        console.log(test.getOutputter().toString());
-
-
-                //    res.send(ret);
-                return;
-
-
-            }
 
         }
 
@@ -189,6 +171,7 @@ app.post('/rsa_request', urlencodedParser, function (req, res) {
         });
 
     } catch (err) {
+        console.log(err);
         return res.status(400).send({
             message: 'Server Error: ' + err
         });

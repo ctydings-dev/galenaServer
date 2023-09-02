@@ -1,26 +1,26 @@
 
+
 class User {
 
-    constructor() {
-        this.admin = false;
-        this.sql = false;
-
-
-
+    constructor(user, password, passCheck, permissions)
+    {
+        this.valid = password === passCheck;
+        this.user = user;
+        this.permissions = permissions;
 
     }
 
-    allowAdmin = function () {
-        return this.admin === true;
+    isValid = function () {
+        return this.valid;
     }
 
-    allowSQL = function () {
-        return this.sql === true;
+    getUser = function () {
+        return this.user;
+    }
+
+    getPermissions = function () {
+        return this.permissions;
     }
 
 }
-
-
-
-
 module.exports = User;

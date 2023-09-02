@@ -1,6 +1,8 @@
 
 const crypto = require('crypto');
 
+const UserFetcherClass = require('./UserFetcher.js');
+
 var RSA = require('hybrid-crypto-js').RSA;
 
 var Crypt = require('hybrid-crypto-js').Crypt;
@@ -8,23 +10,43 @@ var Crypt = require('hybrid-crypto-js').Crypt;
 
 class EncryptionModule {
 
-    constructor() {
+    constructor(address, dbName, user, password) {
         this.generateRSAKeys();
 
         this.aesKeyBank = {};
         this.rsaKeyBank = {};
+        this.userFetcher = new UserFetcherClass(address, dbName, user, password)
 
 
+    }
+
+    getUserFetcher = function () {
+        return this.userFetcher;
     }
 
     getRSAKeyBank = function () {
         return this.rsaKeyBank;
     }
 
-    storeClientRSAKey = function (session, password, key)
+    storeClientRSAKey = function (session, name, password, key)
     {
-        this.getRSAKeyBank()[session] = key;
+        var user = {};
 
+        console.log(this.getUserFetcher().getUser);
+
+        this.getRSAKeyBank()[session] = {
+
+            key: key
+
+
+        };
+
+
+
+        this.getUserFetcher().getUser(name, password, this, session);
+
+
+        //  this.getRSAKeyBank()[session] = key;
     }
 
     getClientRSAKey = function (session) {
@@ -32,7 +54,17 @@ class EncryptionModule {
         if (this.getRSAKeyBank()[session] === null) {
             throw session + ' has not been registered!';
         }
-        return this.getRSAKeyBank()[session];
+        return this.getRSAKeyBank()[session].key;
+
+    }
+
+    getUser = function (session) {
+
+        if (this.getRSAKeyBank()[session] === null) {
+            throw session + ' has not been registered!';
+        }
+        return this.getRSAKeyBank()[session].user;
+
 
     }
 

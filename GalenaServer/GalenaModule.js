@@ -1,6 +1,7 @@
 class GalenaModule {
 
-    constructor() {
+    constructor(name) {
+        this.name = name;
         var output = require('./Outputter.js');
         this.outputter = new output();
 
@@ -8,12 +9,17 @@ class GalenaModule {
 
 
     }
+
+    getName = function () {
+        return this.name;
+    }
+
     getOutputter = function () {
         return this.outputter;
     }
 
-    test = function () {
-        return 'DONDE ESTA';
+    executeCmd = function (payload, req, res, caller) {
+
     }
 
 }

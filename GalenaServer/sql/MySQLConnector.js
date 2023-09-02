@@ -1,6 +1,6 @@
 
 var base = require('./SQLConnector.js');
-
+var User = require('../User.js');
 class MySQLConnector extends base {
 
     constructor(host, user, pswd, db) {
@@ -67,24 +67,24 @@ class MySQLConnector extends base {
 
     }
 
-    validateUser = function (user, password, caller, success, failure) {
+    getUserInformation = function (user, password, caller, session) {
 
-        var stmt = 'SELECT * FROM user WHERE name =\'';
-        stmt = stmt + user + '\' AND password =\'';
-        stmt = stmt + password + '\';';
+        var stmt = 'SELECT * FROM user AS usr LEFT JOIN sql_privilage AS sp ON usr.id = sp.user LEFT JOIN cmd_privilage AS cp ON sp.id=cp.user WHERE usr.user =\'';
+        stmt = stmt + user + '\' ;';
 
+        console.log(stmt);
         this.getConnection().query(stmt, function (err, result) {
             if (err)
                 throw err;
+            var data = stmt[0];
 
 
+            var toAdd = new User(user, password, data.password, data);
+
+            caller.getRSAKeyBank()[session];
 
 
-            for (var prop in result) {
-                caller[success]();
-                return;
-            }
-            caller[failure]();
+            console.log(result);
         });
 
 
@@ -97,34 +97,38 @@ class MySQLConnector extends base {
 
     }
 
-    showTables = function (echo) {
+    showTables = function (callbackCaller, callback) {
 
-        if (echo !== true) {
-            echo = false;
-        }
         var out = this.getOutputter();
         var stmt = "SHOW TABLES;";
         var ret = [];
 
         this.getConnection().query(stmt, function (err, result) {
             if (err)
-                throw err;
-
-            if (echo === true) {
-                out.log('\'' + stmt + '\' sucessfull!');
+            {
+                return;
             }
 
-            console.log('RES ' + stmt);
+
+
+
+
             for (var prop in result) {
-                var toAdd = result[prop]
+                var toAdd = result[prop];
 
                 for (var sub in toAdd) {
                     toAdd = toAdd[sub];
                 }
                 ret.push(toAdd);
-                console.log('adding ' + toAdd);
+
             }
-            out.log('SUCESSFUL ' + result);
+
+            callbackCaller[callback](ret);
+
+
+
+
+
         });
     }
 
@@ -205,7 +209,11 @@ class MySQLConnector extends base {
         var caller = this;
         this.getConnection().query(stmt, function (err, result) {
             if (err)
-                throw err;
+            {
+
+
+
+            }
 
             if (echo === true) {
                 out.log('\'' + stmt + '\' sucessfull!');
@@ -357,7 +365,9 @@ class MySQLConnector extends base {
 
 
             if (err)
-                throw err;
+            {
+            }
+
 
             if (echo === true) {
 
