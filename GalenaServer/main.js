@@ -3,7 +3,7 @@ const port = 9900;
 const cors = require('cors');
 var bodyParser = require('body-parser');
 var cmdResponse = require('./CommandResponse.js');
-
+var resGen = require('./ResponseGenerator.js');
 var sqlModuleClass = require('./sql/SQLModule.js');
 
 
@@ -12,19 +12,6 @@ var sqlModuleClass = require('./sql/SQLModule.js');
 
 
 var message = 'test';
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -65,7 +52,7 @@ app.get('/', (req, res) => {
     var out = req.query;
     try {
         if (req.query.public_key_request === 'true') {
-            res.send(controller.getEncyptionModule().processRequest(req));
+            res.send(controller.getEncryptionModule().processRequest(req));
             return;
         }
     } catch (e) {
@@ -78,14 +65,14 @@ app.post('/rsa_tunnel_request', urlencodedParser, function (req, res) {
     res.set('Access-Control-Allow-Origin', '*');
 
     var client = req.body;
-    var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
+    var decrypt = controller.getEncryptionModule().RSADecrypt(client.payload);
     var payload = JSON.parse(decrypt);
     var session = payload.session;
     var key = payload.rsaKey;
     var password = payload.password;
     var user = payload.user;
 
-    controller.getEncyptionModule().storeClientRSAKey(session, user, password, key);
+    controller.getEncryptionModule().storeClientRSAKey(session, user, password, key);
     console.log('RSA tunnel establisehd for session: ' + session);
     res.send('Session Establied');
 });
@@ -94,13 +81,13 @@ app.post('/rsa_echo', urlencodedParser, function (req, res) {
     console.log('RSA echo request recieved');
     try {
         var client = req.body;
-        var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
+        var decrypt = controller.getEncryptionModule().RSADecrypt(client.payload);
         var payload = JSON.parse(decrypt);
         var session = payload.session;
         var msg = payload.message;
         console.log('Echo Message: ' + msg);
-        var key = controller.getEncyptionModule().getClientRSAKey(session);
-        var echo = controller.getEncyptionModule().RSAEncrypt(msg, key);
+        var key = controller.getEncryptionModule().getClientRSAKey(session);
+        var echo = controller.getEncryptionModule().RSAEncrypt(msg, key);
         echo = JSON.stringify(echo);
         res.send(echo);
     } catch (err) {
@@ -135,7 +122,7 @@ app.get('/db_dump', urlencodedParser, function (req, res) {
 
 
         var client = req.body;
-        var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
+        var decrypt = controller.getEncryptionModule().RSADecrypt(client.payload);
         var payload = JSON.parse(decrypt);
         var session = payload.session;
     } catch (err) {
@@ -150,16 +137,37 @@ app.post('/rsa_request', urlencodedParser, function (req, res) {
     try {
         res.set('Access-Control-Allow-Origin', '*');
         var client = req.body;
-        var decrypt = controller.getEncyptionModule().RSADecrypt(client.payload);
+        var decrypt = controller.getEncryptionModule().RSADecrypt(client.payload);
         var payload = JSON.parse(decrypt);
-        console.log(payload.type);
-        console.log(payload.args[0]);
 
+        var user = controller.getUser(payload.session);
+
+        console.log('RSA request from user: ' + user.getUser());
+        var permit = user.permitRSACommand();
+        console.log('PERMITD : ' + permit);
+        if (user.permitRSACommand() !== true) {
+
+
+            var response = resGen.createErrorResponse('Account does not have RSA Command Privilages!');
+
+            controller.sendResponse(response, payload.session, res);
+            console.log('RSA request denied!');
+            return;
+
+
+        }
+
+        if (payload.type === 'BACKLOG') {
+
+            var counter = payload.counter;
+            var index = payload.index;
+
+        }
 
 
         if (payload.type === 'COMMAND') {
 
-            controller.executeCommand(payload, req, res);
+            controller.executeCommand(payload, req, res, user);
 
             return;
 

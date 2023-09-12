@@ -38,19 +38,14 @@ class UserFetcher {
             caller: caller,
             sql: this.getSQLConnection(),
             user: user,
-            password: password,
+
             session: session
 
         };
 
-        bcrypt.genSalt(saltRounds, function (err, salt) {
-            bcrypt.hash(password, salt, function (err, hash) {
-                console.log(hash);
-                runner.sql.getUserInformation(runner.user, runner.password, runner.caller, runner.session);
+        this.getSQLConnection().getUserInformation(user, password, caller, session);
 
 
-            });
-        });
 
 
 

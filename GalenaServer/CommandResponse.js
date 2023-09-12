@@ -14,6 +14,42 @@ class CommandResponse {
         this.prelim = toSet;
     }
 
+    getPrelim = function (toSet) {
+        return this.prelim;
+    }
+
+    addToPrelim = function (toAdd) {
+        if (Array.isArray(toAdd) === true) {
+
+            for (var index = 0; index < toAdd.length; index++) {
+                this.getPrelim().push(toAdd[index]);
+
+            }
+
+
+            return;
+        }
+
+
+        this.getPrelim.push(toAdd);
+    }
+
+    addToCommands = function (toAdd) {
+        if (Array.isArray(toAdd) === true) {
+
+            for (var index = 0; index < toAdd.length; index++) {
+                this.getCommands().push(toAdd[index]);
+
+            }
+
+
+            return;
+        }
+
+
+        this.getCommands().push(toAdd);
+    }
+
     getCommandSize = function () {
         return this.getCommands().length;
     }
@@ -42,8 +78,8 @@ class CommandResponse {
             }
         }
 
-
-        return JSON.stringify(ret);
+        return ret;
+        // return JSON.stringify(ret);
 
 
 
@@ -99,4 +135,5 @@ class CommandResponse {
 
 }
 ;
+
 module.exports = CommandResponse;

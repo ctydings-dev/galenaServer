@@ -32,8 +32,6 @@ class EncryptionModule {
     {
         var user = {};
 
-        console.log(this.getUserFetcher().getUser);
-
         this.getRSAKeyBank()[session] = {
 
             key: key

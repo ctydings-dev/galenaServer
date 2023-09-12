@@ -52,7 +52,6 @@ class MySQLConnector extends base {
         this.connection.connect(function (err) {
 
 
-            console.log(err);
             if (err === true)
                 throw err;
             out.log("Connected to MySQL Server!");
@@ -69,22 +68,25 @@ class MySQLConnector extends base {
 
     getUserInformation = function (user, password, caller, session) {
 
-        var stmt = 'SELECT * FROM user AS usr LEFT JOIN sql_privilage AS sp ON usr.id = sp.user LEFT JOIN cmd_privilage AS cp ON sp.id=cp.user WHERE usr.user =\'';
+        var stmt = 'SELECT * FROM user AS usr INNER JOIN sql_privilage AS sp ON usr.id = sp.user INNER JOIN cmd_privilage AS cp ON usr.id=cp.user WHERE usr.user =\'';
         stmt = stmt + user + '\' ;';
 
-        console.log(stmt);
         this.getConnection().query(stmt, function (err, result) {
-            if (err)
-                throw err;
-            var data = stmt[0];
+            if (err) {
+                var msg = err.sqlMessage;
 
+                caller.sendErrorResponse(msg);
+                return false;
+
+            }
+
+            var data = result[0];
 
             var toAdd = new User(user, password, data.password, data);
 
-            caller.getRSAKeyBank()[session];
+            caller.getRSAKeyBank()[session].user = toAdd;
 
 
-            console.log(result);
         });
 
 
@@ -97,17 +99,93 @@ class MySQLConnector extends base {
 
     }
 
-    showTables = function (callbackCaller, callback) {
+    showTables = function (callbackCaller, callback, loadAll) {
 
         var out = this.getOutputter();
         var stmt = "SHOW TABLES;";
         var ret = [];
 
+
+        if (loadAll !== true) {
+            loadAll = false;
+        }
+        var sql = this;
         this.getConnection().query(stmt, function (err, result) {
             if (err)
             {
+                var msg = err.sqlMessage;
+
+                callbackCaller.sendErrorResponse(msg);
+                return false;
+            }
+
+
+
+            if (loadAll === true) {
+
+                for (var prop in result) {
+
+                    var toAdd = result[prop];
+
+                    for (var sub in toAdd) {
+                        toAdd = toAdd[sub];
+
+                    }
+                    ret.push(toAdd);
+
+
+                }
+
+                var interior = {
+
+                    index: 0,
+                    tables: ret,
+                    data: [],
+                    caller: callbackCaller,
+                    callbackMethod: callback,
+                    sql: sql,
+                    callbackInt: function (toAdd) {
+
+                        if (toAdd === false) {
+                            return;
+                        }
+
+                        if (toAdd !== false && toAdd !== undefined) {
+
+                            this.data.push(toAdd);
+                        }
+
+
+                        if (this.index >= this.tables.length) {
+
+
+                            this.caller[this.callbackMethod](this.data);
+                            return;
+
+                        }
+                        var tableName = this.tables[this.index];
+                        this.index++;
+
+                        this.sql.getTableStructure(tableName, false, this, 'callbackInt');
+
+
+                    }
+                }
+
+
+
+
+
+                interior.callbackInt();
+
+
+
                 return;
             }
+
+
+
+
 
 
 
@@ -132,20 +210,28 @@ class MySQLConnector extends base {
         });
     }
 
-    getTableData = function (rowData, callbackCaller, callback) {
+    getTableData = function (rowData, callbackCaller, callback, previous) {
 
 
         var out = this.getOutputter();
-        var stmt = "SELECT * FROM " + rowData.name + " ;";
+        var stmt = "SELECT * FROM " + rowData.name + ";";
+        var ret;
+
+        if (previous === undefined) {
+            ret = [];
+            previous = false;
 
 
-        console.log('getting data');
-        var ret = [];
+        }
+
+
+
 
         this.getConnection().query(stmt, function (err, result) {
 
 
             var data = [];
+
 
             for (var prop in result) {
 
@@ -162,10 +248,8 @@ class MySQLConnector extends base {
                 }
                 data.push(row);
 
-                //console.log(rowData.getInsert(row));
-                //   console.log(JSON.stringify(result[prop]));
-            }
 
+            }
 
             var ret = {
                 rowData: rowData,
@@ -183,6 +267,8 @@ class MySQLConnector extends base {
                 }
 
             };
+
+
 
 
 
@@ -210,7 +296,10 @@ class MySQLConnector extends base {
         this.getConnection().query(stmt, function (err, result) {
             if (err)
             {
+                var msg = err.sqlMessage;
 
+                callbackCaller.sendErrorResponse(msg);
+                return false;
 
 
             }
@@ -219,7 +308,7 @@ class MySQLConnector extends base {
                 out.log('\'' + stmt + '\' sucessfull!');
             }
 
-            console.log('RES ' + stmt);
+
             var rows = {};
             for (var prop in result) {
                 var row = result[prop];
@@ -350,15 +439,13 @@ class MySQLConnector extends base {
 
 
             caller.getTableData(ret, callbackCaller, callback);
-            out.log('SUCESSFUL ' + result);
+
         });
     }
 
-    executeStatement = function (stmt, echo) {
+    executeStatement = function (stmt, caller, callback) {
 
-        if (echo !== true) {
-            echo = false;
-        }
+
         var out = this.getOutputter();
         out.log('Executing Statement: ' + stmt);
         this.getConnection().query(stmt, function (err, result) {
@@ -366,15 +453,15 @@ class MySQLConnector extends base {
 
             if (err)
             {
-            }
 
+                throw err;
 
-            if (echo === true) {
-
-                out.log('\'' + stmt + '\' sucessfull!');
 
             }
 
+            if (caller !== undefined) {
+                // caller[callback](result);
+            }
 
 
         });

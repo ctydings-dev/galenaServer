@@ -3,11 +3,13 @@ CREATE DATABASE galena;
 USE galena;
 CREATE TABLE user(id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT, user VARCHAR(64),password VARCHAR(64));
 CREATE TABLE sql_privilage(id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT, user INTEGER, permit_table_list BOOLEAN, permit_table_dump BOOLEAN);
-
+CREATE TABLE cmd_privilage(id INTEGER PRIMARY KEY NOT NULL AUTO_INCREMENT, user INTEGER, permit_rsa_request BOOLEAN);
 
 
 
 
 INSERT INTO user(user,password) VALUE ('ctydings','$2b$10$/dqY7WpahoxR9yo.EV8OQeO3dFW7S5iOLPYKnN/YVmkipguMzGcay');
-INSERT INTO user(user,password) VALUE ('root','$2b$10$/dqY7WpahoxR9yo.EV8OQeO3dFW7S5iOLPYKnN/YVmkipguMzGcay');
+INSERT INTO user(user,password) VALUE ('root','$2b$10$STBFIMa3LuY2LEaDZhDiJejubIa8uHySIrehM0pVCVVW9mUPMN5Qu');
 INSERT INTO sql_privilage(user,permit_table_list, permit_table_dump) SELECT id, TRUE,TRUE FROM user WHERE user = 'root';
+INSERT INTO cmd_privilage(user,permit_rsa_request) SELECT id, TRUE FROM user WHERE user = 'root';
+

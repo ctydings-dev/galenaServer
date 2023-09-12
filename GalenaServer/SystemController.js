@@ -12,6 +12,7 @@ class SystemController {
         this.encryptionMod = new encryption(address, dbName, user, password);
         this.modules = [];
         this.counters = {};
+        this.queue = {};
         this.genUtils = new genUtilClass();
         this.currentModule = '';
     }
@@ -20,7 +21,7 @@ class SystemController {
         return '!';
     }
 
-    getEncyptionModule = function () {
+    getEncryptionModule = function () {
         return this.encryptionMod;
     }
 
@@ -32,14 +33,68 @@ class SystemController {
         return this.genUtils;
     }
 
+    getQueue = function (session) {
+
+        var ret = this.queue[session];
+        if (ret === undefined || ret === null) {
+            this.queue[session] = {};
+            return this.getQueue(session);
+        }
+
+        return ret;
+    }
+
+    getBacklog = function (session, parent, index) {
+
+
+        var ret = this.getQueue(session)[parent];
+
+        if (ret === null || ret === undefined) {
+            this.getQueue(session)[parent] = {};
+            return this.getBacklog(session, parent, index);
+        }
+
+        var ret = ret[index];
+
+        return ret;
+
+
+
+
+    }
+
+    storeBacklog = function (value, session, parent, index) {
+
+
+        var ret = this.getQueue(session)[parent];
+
+        if (ret === null || ret === undefined) {
+            this.getQueue(session)[parent] = {};
+
+        }
+
+        ret[index] = value;
+
+
+
+
+
+
+    }
+
     addModule = function (toAdd) {
 
 
         this.getModules()[toAdd.getName()] = toAdd;
-        console.log(this.getModules().length);
+
         if (this.getModule() === null || this.getModule() === undefined) {
             this.setModule(toAdd.getName());
         }
+
+    }
+
+    getUser = function (session) {
+        return this.getEncryptionModule().getUser(session);
 
     }
 
@@ -90,7 +145,7 @@ class SystemController {
         return true;
     }
 
-    executeCommand = function (payload, req, res) {
+    executeCommand = function (payload, req, res, user) {
 
 
         if (this.checkReplayAttack(payload) === false) {
@@ -104,7 +159,7 @@ class SystemController {
 
 
         try {
-            this.getModule().executeCommand(payload, req, res, this);
+            this.getModule().executeCommand(payload, req, res, this, user);
         } catch (throwable) {
 
         }
@@ -114,8 +169,49 @@ class SystemController {
 
     encryptPayload = function (session, payload) {
 
+        var total = -1;
+
+
+        if (Array.isArray(payload) === true) {
+
+            total = payload.length;
+
+
+            var ret = {};
+            for (var index = 0; index < payload.length; index++) {
+
+                var toAdd = this.encryptPayload(session, payload[index]);
+
+
+                if (index === 0)
+                {
+
+                    ret = toAdd;
+                } else
+                {
+                    //this.a
+                }
+
+            }
+
+            return ret;
+
+
+
+        }
+
+
+
+
+        payload = {
+            payload: payload
+        };
+        payload.counter = this.counters[session];
+        payload.total = total;
         payload = JSON.stringify(payload);
-        payload = this.getEncyptionModule().RSASessionEncrypt(payload, session);
+
+
+        payload = this.getEncryptionModule().RSASessionEncrypt(payload, session);
         var ret = {
             payload: payload
         };
@@ -175,8 +271,8 @@ class SystemController {
     }
 
     encryptResponse = function (session, message) {
-        var key = this.getEncyptionModule().getClientRSAKey(session);
-        var ret = this.getEncyptionModule().RSAEncrypt(message, key);
+        var key = this.getEncryptionModule().getClientRSAKey(session);
+        var ret = this.getEncryptionModule().RSAEncrypt(message, key);
         ret = JSON.stringify(ret);
         return ret;
     }
