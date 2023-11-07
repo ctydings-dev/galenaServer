@@ -40,38 +40,22 @@ class SQLModule extends base {
                 caller.sendResponse(response, session, res);
                 return;
             }
-
-
-
-
-
             this.sqlTableDump(payload, req, res, caller);
             return;
         }
 
 
         if (type === 'SQL_TABLE_LIST') {
-
-
             if (user.permitSQLTableList() !== true) {
-
                 var response = resGen.createErrorResponse('User does not have SQL table list privilages!');
-
                 caller.sendResponse(response, session, res);
                 return;
             }
-
-
-
-
             this.sqlTableList(payload, req, res, caller);
             return;
         }
 
         if (type === 'SQL_COMMAND' || type === 'SQL_CMD') {
-
-
-
 
             this.sqlStatement(payload, req, res, caller);
 
@@ -171,6 +155,61 @@ class SQLModule extends base {
 
     }
 
+    runSQLStatement = function(db, statement,req,res, caller){
+
+        
+
+        var callbackCaller = {
+
+        };
+
+
+        callbackCaller.parent = this;
+        callbackCaller.controller = caller;
+        callbackCaller.session = payload.session;
+        callbackCaller.res = res;
+
+        callbackCaller.sendErrorResponse = function (msg) {
+            var ret = resGen.createErrorResponse(msg);
+            var response = this.controller.encryptPayload(this.session, ret);
+            this.res.send(response);
+        };
+
+        callbackCaller.process = function (value) {
+
+
+            var cmds = value.getCreateStatements();
+            var ret = new cmdResponse('SQL', cmds);
+            ret.setPrelim(value.rowData.getCreate());
+            var response = ret.createResponses();
+            response = this.controller.encryptPayload(this.session, response);
+            this.res.send(response);
+            console.log('DONE');
+
+        };
+
+
+//        callbackCaller.sql = this.getConnection(dbName);
+        callbackCaller.sql = this.createConnection(dbName, payload.user, payload.password);
+        callbackCaller.tableName = tableName;
+
+
+
+        callbackCaller.sql.getTableStructure(tableName, false, callbackCaller, 'process');
+
+        return;
+
+
+
+    }
+
+
+
+
+
+
+
+
     sqlTableDump = function (payload, req, res, caller) {
         console.log('GETTING DUMP');
 
@@ -205,16 +244,11 @@ class SQLModule extends base {
         callbackCaller.controller = caller;
         callbackCaller.session = payload.session;
         callbackCaller.res = res;
+
         callbackCaller.sendErrorResponse = function (msg) {
-
             var ret = resGen.createErrorResponse(msg);
-
-
             var response = this.controller.encryptPayload(this.session, ret);
-
             this.res.send(response);
-
-
         };
 
         callbackCaller.process = function (value) {
@@ -222,16 +256,10 @@ class SQLModule extends base {
 
             var cmds = value.getCreateStatements();
             var ret = new cmdResponse('SQL', cmds);
-
             ret.setPrelim(value.rowData.getCreate());
-
-
             var response = ret.createResponses();
-
             response = this.controller.encryptPayload(this.session, response);
-
             this.res.send(response);
-
             console.log('DONE');
 
         };
@@ -323,7 +351,7 @@ class SQLModule extends base {
             statement = statement + payload.args[index] + ' ';
         }
 
-        console.log(statement);
+       this.runSQLStatement(db, statement,req, res,caller);
     }
 
 }
