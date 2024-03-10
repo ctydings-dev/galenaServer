@@ -90,14 +90,19 @@ class MySQLConnector extends base {
         });
 
 
-
-
-
-
-
-
-
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     showTables = function (callbackCaller, callback, loadAll) {
 
@@ -454,13 +459,13 @@ class MySQLConnector extends base {
             if (err)
             {
 
-                throw err;
-
+                caller.error(err);
+return;
 
             }
 
             if (caller !== undefined) {
-                // caller[callback](result);
+                 caller[callback](result);
             }
 
 

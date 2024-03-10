@@ -27,7 +27,6 @@ var mod = require('./sql/MySQLConnector.js');
 var sysController = require('./SystemController.js');
 test = new mod('localhost', 'root', 'Per@grin1', 'caliber');
 var stmt = 'SHOW TABLES;';
-test.executeStatement(stmt, true);
 //console.log(test.getOutputter().toString());
 
 var controller = new sysController('localhost', 'root', 'Per@grin1', 'galena');

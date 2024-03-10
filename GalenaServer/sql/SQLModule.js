@@ -13,11 +13,19 @@ class SQLModule extends base {
     constructor(address) {
         super('SQL');
         this.address = address;
-
+        this.database = null;
         this.connections = [];
     }
     getAddress = function () {
         return this.address;
+    }
+
+    getDatabase = function(){
+        return this.database;
+    }
+
+    setDatabase = function(toSet){
+        this.database = toSet;
     }
 
     createConnection = function (dbName, user, password) {
@@ -45,39 +53,60 @@ class SQLModule extends base {
         }
 
 
-        if (type === 'SQL_TABLE_LIST') {
-            if (user.permitSQLTableList() !== true) {
-                var response = resGen.createErrorResponse('User does not have SQL table list privilages!');
-                caller.sendResponse(response, session, res);
-                return;
-            }
-            this.sqlTableList(payload, req, res, caller);
-            return;
-        }
+if(type === "USE"){
+if(payload.args.length !== 2){
+    var response = resGen.createErrorResponse('USE has two arguments!');
 
-        if (type === 'SQL_COMMAND' || type === 'SQL_CMD') {
+    caller.sendResponse(response, session, res);
+    return;
 
-            this.sqlStatement(payload, req, res, caller);
+}
+    
+    this.setDatabase(payload.args[1].trim());
+    var response = resGen.createStringResponse('Database set to ' + this.getDatabase());
 
-
-            //    return;
-        }
+    caller.sendResponse(response, session, res);
+    return;
+}
 
 
+if(this.getDatabase() === null){
+    var response = resGen.createErrorResponse('No database selected!');
+
+    caller.sendResponse(response, session, res);
+    return;
+
+
+}
+
+
+let stmt = payload.command;
+try{
+this.runSQLStatement(this.getDatabase(),stmt,payload, req,res,caller)
+}
+catch(err){
+
+    var response = resGen.createErrorResponse('SERVER ERROR!');
+
+    caller.sendResponse(response, session, res);
+    return;
+
+}
 
 
 
 
 
 
-        //  throw 'Command not recognized!';
 
 
-        var response = resGen.createErrorResponse('Command ' + type + ' is not recognized!');
-
-        caller.sendResponse(response, session, res);
 
 
+
+//var response = resGen.createStringResponse('CMD executed ' + this.getDatabase());
+
+//caller.sendResponse(response, session, res);
+return;
 
     }
 
@@ -155,7 +184,7 @@ class SQLModule extends base {
 
     }
 
-    runSQLStatement = function(db, statement,req,res, caller){
+    runSQLStatement = function(db, stmt,payload,req,res, caller){
 
         
 
@@ -175,13 +204,45 @@ class SQLModule extends base {
             this.res.send(response);
         };
 
+callbackCaller.error = function(err){
+
+
+this.sendErrorResponse(err.sqlMessage);
+
+
+}
+
+
         callbackCaller.process = function (value) {
 
+if(value.length < 1){
+    
+var response = resGen.createStringResponse('CMD executed ' + this.getDatabase());
 
-            var cmds = value.getCreateStatements();
-            var ret = new cmdResponse('SQL', cmds);
-            ret.setPrelim(value.rowData.getCreate());
-            var response = ret.createResponses();
+caller.sendResponse(response, session, res);
+}
+
+var cols = [];
+for(var prop in value[0]){
+    cols.push(prop);
+}
+var rows = [];
+
+for(var x = 0; x < value.length; x++){
+var row = [];
+    for(var y = 0; y < cols.length; y++){
+row.push(value[x][cols[y]]);
+
+}
+rows.push(row);
+
+}
+
+          //  var cmds = value.getCreateStatements();
+        //    var ret = new cmdResponse('SQL', cmds);
+          //  ret.setPrelim(value.rowData.getCreate());
+            var response = new TableResponse(cols);
+            response.rows = rows;
             response = this.controller.encryptPayload(this.session, response);
             this.res.send(response);
             console.log('DONE');
@@ -190,12 +251,11 @@ class SQLModule extends base {
 
 
 //        callbackCaller.sql = this.getConnection(dbName);
-        callbackCaller.sql = this.createConnection(dbName, payload.user, payload.password);
-        callbackCaller.tableName = tableName;
+        callbackCaller.sql = this.createConnection(db, payload.user, payload.password);
+       
 
 
-
-        callbackCaller.sql.getTableStructure(tableName, false, callbackCaller, 'process');
+        callbackCaller.sql.executeStatement(stmt,  callbackCaller, 'process');
 
         return;
 
